@@ -3,7 +3,7 @@
 import Image from "next/image";
 import logo from './assets/yo.png';
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, UIMessage } from 'ai';
 import { useState } from 'react';
 import LoadingBubble from "./components/LoadingBubble";
 import Bubble from "./components/Bubble";
@@ -17,7 +17,12 @@ const Home = () => {
     });
 
     const [input, setInput] = useState('');
-    const noMessages = false;
+    const noMessages = !messages || messages.length === 0;
+
+    const handlePrompt = (promptText: string) => {
+        setInput(promptText);
+        sendMessage({ text: promptText });
+    }
 
     return (
         <main>
@@ -28,7 +33,7 @@ const Home = () => {
                         <>
                             <p className="starter-text">Ask anything about BK Kiran!</p>
                             <br></br>
-                            <PromptSuggestionRow/>
+                            <PromptSuggestionRow onPromptClick = {handlePrompt}/>
                         </>
                     ) : (
                         <>

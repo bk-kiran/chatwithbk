@@ -244,6 +244,33 @@ input[type="submit"]:disabled {
     animation: loading 1s infinite linear;
 }
 
+.bubble.user {
+    border-radius: 20px 20px 0 20px;
+    background-color: rgb(225, 244, 255);
+    margin-left: auto;
+}
+
+.bubble.message.assistant{
+    border-radius: 20px 20px 20px 0;
+    background-color: #dce7ff;
+}
+
+.prompt-suggestion-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.prompt-suggestion-button {
+    padding: 10px 15px;
+    background: #f1f3f5;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
 @keyframes loading {
     33% {background-size: calc(100%/3) 0%, calc(100%/3) 100%, calc(100%/3) 100%;}
     50% {background-size: calc(100%/3) 100%, calc(100%/3) 0%, calc(100%/3) 100%;}
