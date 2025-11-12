@@ -20,30 +20,25 @@ const db = client.db(ASTRA_DB_API_ENDPOINT, { namespace: ASTRA_DB_NAMESPACE });
 
 export async function POST(req: Request) {
   try {
-    // useChat sends messages as UIMessage[]
     const body = await req.json();
     const messages = body.messages ?? [];
 
-    // extract latest user message text safely
-    const latestMessage =
-      messages[messages.length - 1]?.content
-        ?.map?.((p: any) => ("text" in p ? p.text : ""))
-        .join("") ||
-      messages[messages.length - 1]?.parts?.[0]?.text ||
-      "";
+    // Extract latest message content
+    const latestMessage = messages[messages.length - 1];
+    const messageContent = latestMessage?.content || "";
 
-    console.log("Latest message:", latestMessage);
+    console.log("Latest message:", messageContent);
 
-    if (!latestMessage) {
+    if (!messageContent) {
       return new Response("No message content provided", { status: 400 });
     }
 
     let docContext = "";
 
-    // create embedding for query
+    // Create embedding for query
     const embedding = await openAI.embeddings.create({
       model: "text-embedding-3-small",
-      input: latestMessage,
+      input: messageContent,
       encoding_format: "float",
     });
 
@@ -54,7 +49,7 @@ export async function POST(req: Request) {
         {},
         {
           sort: { $vector: embedding.data[0].embedding },
-          limit: 10,
+          limit: 20,
           includeSimilarity: true,
         }
       );
@@ -91,15 +86,15 @@ ${docContext}
 
 Now answer the following question based on the context above.`;
 
-    // ✅ Stream the assistant reply in UIMessage format
+    // Stream the response
     const result = await streamText({
       model: openai("gpt-4o"),
       system: systemPrompt,
-      messages, // already in correct UI message shape
+      messages: messages,
     });
 
-    // ✅ useChat expects UI messages, so return this:
-    return result.toTextStreamResponse();
+    // Return streaming response in format compatible with useChat
+    return result.toDataStreamResponse();
 
   } catch (error) {
     console.error("Error in chat route:", error);

@@ -19,7 +19,8 @@ const bkdata = [
     { type: 'url', source: 'https://kiranbk.com/' },
     { type: 'url', source: 'https://github.com/bk-kiran' },
     { type: 'pdf', source: './resume.pdf' },
-    { type: 'text', source: './about-me.md' }
+    { type: 'text', source: './about-me.md' },
+    { type: 'text', source: './comprehensive.md' }
 ];
 
 const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN);

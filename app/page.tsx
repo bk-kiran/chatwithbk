@@ -2,24 +2,30 @@
 
 import Image from "next/image";
 import logo from "./assets/yo.png";
-import { useChat } from "@ai-sdk/react";
+import { useChat } from "ai/react";  // Changed from @ai-sdk/react to ai/react
 import { useState } from "react";
 import LoadingBubble from "./components/LoadingBubble";
 import Bubble from "./components/Bubble";
 import PromptSuggestionRow from "./components/PromptSuggestionRow";
 
 const Home = () => {
-  // ✅ No options — uses default /api/chat
-  const { messages, sendMessage, status } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
 
-  const [input, setInput] = useState("");
   const noMessages = !messages || messages.length === 0;
-  const isLoading = status === "submitted" || status === "streaming";
 
   const handlePrompt = (promptText: string) => {
-    setInput(promptText);
-    sendMessage({ text: promptText });
-    setInput("");
+    // Create a form event with the prompt text
+    const formData = new FormData();
+    formData.append('prompt', promptText);
+    
+    const fakeEvent = {
+      preventDefault: () => {},
+      target: formData
+    } as any;
+    
+    // Manually set input and submit
+    handleInputChange({ target: { value: promptText } } as any);
+    setTimeout(() => handleSubmit(fakeEvent), 10);
   };
 
   return (
@@ -42,24 +48,16 @@ const Home = () => {
             </div>
           )}
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (input.trim()) {
-                sendMessage({ text: input });
-                setInput("");
-              }
-            }}
-          >
+          <form onSubmit={handleSubmit}>
             <input
               className="question-box"
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               value={input}
               placeholder="Ask Me Anything..."
               name="prompt"
-              disabled={status !== "ready"}
+              disabled={isLoading}
             />
-            <input type="submit" value="Submit" disabled={status !== "ready"} />
+            <input type="submit" value="Submit" disabled={isLoading} />
           </form>
         </section>
       </div>
