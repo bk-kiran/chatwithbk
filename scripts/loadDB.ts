@@ -5,12 +5,9 @@ import fs from 'fs';
 import pdf from 'pdf-parse';
 import OpenAI from 'openai';
 
-
 import "dotenv/config";
-import { parse } from 'path';
-import { create } from 'domain';
 
-type SimilarityMetric = "dot_product" | "cosine" | "euclidean"; // used to compute similarity between vectors
+type SimilarityMetric = "dot_product" | "cosine" | "euclidean";
 
 const {ASTRA_DB_NAMESPACE, ASTRA_DB_COLLECTION, ASTRA_DB_API_ENDPOINT, ASTRA_DB_APPLICATION_TOKEN, OPENAI_API_KEY} = process.env;
 
@@ -25,12 +22,20 @@ const bkdata = [
     { type: 'text', source: './about-me.md' }
 ];
 
-const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
+const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN);
 const db = client.db(ASTRA_DB_API_ENDPOINT, {namespace: ASTRA_DB_NAMESPACE});
 
 const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 512, chunkOverlap: 100 });
 
-const createCollection = async (similarityMetric: SimilarityMetric = "dot_product") => {
+const createCollection = async (similarityMetric: SimilarityMetric = "cosine") => {
+    try {
+        // Try to drop existing collection first
+        await db.dropCollection(ASTRA_DB_COLLECTION);
+        console.log('Dropped existing collection');
+    } catch (e) {
+        console.log('No existing collection to drop');
+    }
+
     const res = await db.createCollection(ASTRA_DB_COLLECTION, {
         vector: {
             dimension: 1536,
@@ -38,7 +43,7 @@ const createCollection = async (similarityMetric: SimilarityMetric = "dot_produc
         }
     });
 
-    console.log('Collection created:', res);
+    console.log('✓ Collection created:', res);
 }
 
 async function extractPdfText(pdfPath: string): Promise<string> {
@@ -66,10 +71,16 @@ const scrapeWebsite = async (url: string) => {
 }
 
 const loadSampleData = async () => {
+    // First, ensure collection exists with proper config
+    await createCollection("cosine");
+    
     const collection = db.collection(ASTRA_DB_COLLECTION);
+    let totalChunks = 0;
 
     for await (const item of bkdata) {
         let content: string;
+        
+        console.log(`Processing ${item.type}: ${item.source}...`);
         
         if (item.type === 'text') {
             content = fs.readFileSync(item.source, 'utf-8');
@@ -83,6 +94,7 @@ const loadSampleData = async () => {
         }
 
         const chunks = await splitter.splitText(content);
+        console.log(`  Split into ${chunks.length} chunks`);
         
         for (const chunk of chunks) {
             const embedding = await openai.embeddings.create({
@@ -95,24 +107,21 @@ const loadSampleData = async () => {
 
             const res = await collection.insertOne({
                 $vector: vector,
-                text: chunk
+                text: chunk,
+                source: item.source,
+                type: item.type
             });
 
-            console.log(res);
+            totalChunks++;
         }
         
-        console.log(`✓ Processed ${item.type}: ${item.source}`);
+        console.log(`✓ Completed ${item.type}: ${item.source}`);
     }
     
-    console.log('✅ All data loaded successfully!');
+    console.log(`\n✅ Successfully loaded ${totalChunks} chunks into the database!`);
 };
 
-loadSampleData().catch(error => console.error('Error:', error));
-
-
-
-
-
-
-
-
+loadSampleData().catch(error => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+});

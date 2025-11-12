@@ -1,9 +1,17 @@
 const Bubble = ({ message }) => {
-    const content = message.parts[0]?.text || '';
+    // Handle different message formats from AI SDK
+    const content = message.content || 
+                   message.parts?.[0]?.text || 
+                   message.text || 
+                   '';
+    
     const { role } = message;
 
+    // Debug log to see what we're receiving
+    console.log('Message received:', message);
+
     return (
-        <div className={`bubble ${role}`}>
+        <div className={`bubble message ${role}`}>
             <p>{content}</p>
         </div>
     );
